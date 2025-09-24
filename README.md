@@ -86,8 +86,8 @@ wget https://www.perplexity.ai/perplexity-user.json
 
 1. **کلون کردن مخزن:**
 ```bash
-git clone https://github.com/yourusername/security-log-analyzer.git
-cd security-log-analyzer
+git clone https://github.com/dadashzadeh/log-analyzer-cpanel.git
+cd log-analyzer-cpanel
 ```
 
 2. **نصب وابستگی‌ها:**
@@ -105,27 +105,27 @@ chmod +x download_ip_ranges.sh
 
 ### استفاده پایه
 ```bash
-python analyzer.py access_log.gz
+python log.py access_log.gz
 ```
 
 ### با تعیین نوع سایت
 ```bash
-python analyzer.py access_log.gz --type wordpress
+python log.py access_log.gz --type wordpress
 ```
 
 ### با فیلتر زمانی
 ```bash
-python analyzer.py access_log.gz --period 30  # آنالیز 30 روز اخیر
+python log.py access_log.gz --period 30  # آنالیز 30 روز اخیر
 ```
 
 ### حالت تعاملی
 ```bash
-python analyzer.py access_log.gz --interactive
+python log.py access_log.gz --interactive
 ```
 
 ### تولید همه گزارش‌ها
 ```bash
-python analyzer.py access_log.gz --all
+python log.py access_log.gz --all
 ```
 
 ## 📊 گزارش‌های خروجی
@@ -215,7 +215,7 @@ python analyzer.py access_log.gz --all
 
 ### مثال 1: تحلیل سایت WordPress در 30 روز اخیر
 ```bash
-python analyzer.py /var/log/apache2/access_log.gz \
+python log.py /var/log/apache2/access_log.gz \
     --type wordpress \
     --period 30 \
     --excel \
@@ -224,7 +224,7 @@ python analyzer.py /var/log/apache2/access_log.gz \
 
 ### مثال 2: تحلیل کامل با همه گزارش‌ها
 ```bash
-python analyzer.py access.log \
+python log.py access.log \
     --type general \
     --all \
     --timeline
@@ -232,14 +232,14 @@ python analyzer.py access.log \
 
 ### مثال 3: تحلیل سریع برای شناسایی بات‌های جعلی
 ```bash
-python analyzer.py access_log.gz \
+python log.py access_log.gz \
     --json \
     --quiet
 ```
 
 ### مثال 4: حالت تعاملی برای انتخاب بازه زمانی
 ```bash
-python analyzer.py logs.zip \
+python log.py logs.zip \
     --interactive \
     --type opencart \
     --all
