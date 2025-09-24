@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "log-analyzer-cpanel"
+version = "2.0.0"
+description = "Advanced log analyzer for cPanel/Apache/Nginx with Excel reports and bot verification"
+readme = "README.md"
+authors = [{ name = "dadashzadeh", email = "webdadashzadeh@gmail.com" }]
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+keywords = ["log", "cpanel", "apache", "nginx", "security", "analysis", "excel"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+dependencies = [
+  "pandas>=2.0",
+  "numpy>=1.24",
+  "openpyxl>=3.1",
+  "requests>=2.31",
+  "user-agents>=2.2",
+]
+
+[project.urls]
+Homepage = ""
+Repository = ""
+
+[project.scripts]
+log-analyzer = "log:main"

@@ -1,0 +1,6 @@
+pandas
+numpy
+openpyxl
+requests
+user-agents
+dnspython
