@@ -561,6 +561,8 @@ class AdvancedSecurityAnalyzer:
                     r'/c99\.php',
                     r'/r57\.php',
                     r'/backdoor\.php'
+                    r'/upload\.php'
+                    r'/cmd\.php'
                 ],
                 'severity': 'MEDIUM'
             },
@@ -3585,8 +3587,6 @@ Examples:
         if not args.quiet:
             traceback.print_exc()
         sys.exit(1)
-
-
 
 if __name__ == "__main__":
     main()
