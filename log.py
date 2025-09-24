@@ -2,7 +2,9 @@ import re
 import json
 import gzip
 import zipfile
+import tarfile
 import ipaddress
+import shutil
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 import pandas as pd
@@ -650,35 +652,102 @@ class AdvancedSecurityAnalyzer:
             '503': 'Service Unavailable'
         }
     
-    def extract_file(self) -> str:
-        """استخراج فایل gz/zip"""
+    def extract_file(self) -> List[str]:
+        """استخراج فایل gz/zip/tar.gz و برگرداندن لیست فایل‌های لاگ"""
         file_path = Path(self.log_file_path)
-        
-        if file_path.suffix == '.gz':
+        extracted_files = []
+
+        # ایجاد پوشه موقت برای استخراج
+        extract_dir = Path('extracted_logs')
+        extract_dir.mkdir(exist_ok=True)
+
+        # پردازش tar.gz
+        if file_path.suffix == '.gz' and file_path.name.endswith('.tar.gz'):
+            print(f"📦 استخراج آرشیو tar.gz: {file_path.name}...")
+
+            with tarfile.open(file_path, 'r:gz') as tar:
+                # لیست فایل‌های درون آرشیو
+                members = tar.getmembers()
+                log_members = []
+
+                # فیلتر کردن فایل‌های لاگ
+                for member in members:
+                    if member.isfile():
+                        name_lower = member.name.lower()
+                        if 'access' in name_lower or 'log' in name_lower:
+                            log_members.append(member)
+                            print(f"  📄 یافت شد: {member.name}")
+
+                # استخراج فایل‌های لاگ
+                for member in log_members:
+                    tar.extract(member, extract_dir)
+                    extracted_path = extract_dir / member.name
+
+                    # اگر فایل استخراج شده هم فشرده است
+                    if extracted_path.suffix == '.gz':
+                        print(f"    📦 استخراج فایل فشرده: {extracted_path.name}...")
+                        decompressed_path = extracted_path.with_suffix('')
+
+                        with gzip.open(extracted_path, 'rb') as gz_file:
+                            with open(decompressed_path, 'wb') as out_file:
+                                out_file.write(gz_file.read())
+
+                        extracted_files.append(str(decompressed_path))
+                        # حذف فایل فشرده موقت
+                        extracted_path.unlink()
+                    else:
+                        extracted_files.append(str(extracted_path))
+
+            print(f"✅ تعداد {len(extracted_files)} فایل لاگ استخراج شد")
+
+        # پردازش فایل gz معمولی
+        elif file_path.suffix == '.gz':
             print(f"📦 استخراج {file_path.name}...")
             extracted_path = file_path.with_suffix('')
-            
+
             with gzip.open(file_path, 'rb') as gz_file:
                 with open(extracted_path, 'wb') as output_file:
                     content = gz_file.read()
                     output_file.write(content)
-            
+
+            extracted_files.append(str(extracted_path))
             print(f"✅ استخراج شد: {extracted_path.name}")
-            return str(extracted_path)
-        
+
+        # پردازش فایل zip
         elif file_path.suffix == '.zip':
             print(f"📦 استخراج {file_path.name}...")
-            extract_dir = Path('extracted_logs')
-            extract_dir.mkdir(exist_ok=True)
-            
+
             with zipfile.ZipFile(file_path, 'r') as zip_ref:
-                zip_ref.extractall(extract_dir)
-                extracted_files = list(extract_dir.glob('*'))
-                if extracted_files:
-                    return str(extracted_files[0])
-        
-        return str(file_path)
-    
+                # لیست فایل‌های درون zip
+                for file_info in zip_ref.filelist:
+                    name_lower = file_info.filename.lower()
+                    if 'access' in name_lower or 'log' in name_lower:
+                        print(f"  📄 استخراج: {file_info.filename}")
+                        zip_ref.extract(file_info, extract_dir)
+                        extracted_path = extract_dir / file_info.filename
+
+                        # اگر فایل استخراج شده هم فشرده است
+                        if extracted_path.suffix == '.gz':
+                            print(f"    📦 استخراج فایل فشرده: {extracted_path.name}...")
+                            decompressed_path = extracted_path.with_suffix('')
+
+                            with gzip.open(extracted_path, 'rb') as gz_file:
+                                with open(decompressed_path, 'wb') as out_file:
+                                    out_file.write(gz_file.read())
+
+                            extracted_files.append(str(decompressed_path))
+                            extracted_path.unlink()
+                        else:
+                            extracted_files.append(str(extracted_path))
+
+            print(f"✅ تعداد {len(extracted_files)} فایل لاگ استخراج شد")
+
+        # فایل معمولی
+        else:
+            extracted_files.append(str(file_path))
+
+        return extracted_files if extracted_files else [str(file_path)]
+
     def parse_log_line(self, line: str) -> Dict:
         """پارس خط لاگ با پشتیبانی از فرمت‌های مختلف"""
         # Combined Log Format
@@ -764,16 +833,12 @@ class AdvancedSecurityAnalyzer:
                 print(f"❌ خطا: {e}")
 
     def load_logs(self, days_limit: int = 0) -> List[Dict]:
-        """بارگذاری و پارس لاگ‌ها با فیلتر زمانی
+        """بارگذاری و پارس لاگ‌ها با پشتیبانی از چندین فایل"""
+        log_files = self.extract_file()
 
-        Args:
-            days_limit: تعداد روزهای اخیر (0 = بدون محدودیت)
-        """
-        log_file = self.extract_file()
+        print(f"📖 خواندن {len(log_files)} فایل لاگ...")
 
-        print(f"📖 خواندن فایل لاگ...")
-
-        # محاسبه تاریخ cutoff اگر محدودیت زمانی داریم
+        # محاسبه تاریخ cutoff
         cutoff_date = None
         if days_limit > 0:
             cutoff_date = datetime.now() - timedelta(days=days_limit)
@@ -782,61 +847,108 @@ class AdvancedSecurityAnalyzer:
         total_lines = 0
         parsed_lines = 0
         filtered_lines = 0
-        failed_lines = []
+        file_stats = {}
 
-        encodings = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
+        # پردازش هر فایل لاگ
+        for log_file in sorted(log_files):
+            print(f"\n  📄 پردازش: {Path(log_file).name}")
+            file_total = 0
+            file_parsed = 0
+            file_filtered = 0
 
-        for encoding in encodings:
-            try:
-                with open(log_file, 'r', encoding=encoding, errors='ignore') as f:
-                    for line_num, line in enumerate(f, 1):
-                        total_lines += 1
+            encodings = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
 
-                        if total_lines % 10000 == 0:
-                            print(f"  پردازش: {total_lines:,} خط...")
+            for encoding in encodings:
+                try:
+                    with open(log_file, 'r', encoding=encoding, errors='ignore') as f:
+                        for line_num, line in enumerate(f, 1):
+                            file_total += 1
+                            total_lines += 1
 
-                        parsed = self.parse_log_line(line.strip())
-                        if parsed:
-                            parsed_lines += 1
+                            if total_lines % 10000 == 0:
+                                print(f"    پردازش: {total_lines:,} خط...")
 
-                            # بررسی محدودیت زمانی
-                            if cutoff_date:
-                                if parsed['datetime'] < cutoff_date:
-                                    filtered_lines += 1
-                                    continue  # این لاگ قدیمی است، رد شود
-                                
-                            self.logs.append(parsed)
+                            parsed = self.parse_log_line(line.strip())
+                            if parsed:
+                                file_parsed += 1
+                                parsed_lines += 1
 
-                        elif len(failed_lines) < 10:
-                            failed_lines.append((line_num, line[:100]))
+                                # بررسی محدودیت زمانی
+                                if cutoff_date:
+                                    if parsed['datetime'] < cutoff_date:
+                                        file_filtered += 1
+                                        filtered_lines += 1
+                                        continue
+                                    
+                                # اضافه کردن نام فایل منبع
+                                parsed['source_file'] = Path(log_file).name
+                                self.logs.append(parsed)
 
-                print(f"\n✅ بارگذاری کامل:")
-                print(f"  • کل خطوط: {total_lines:,}")
-                print(f"  • پارس شده: {parsed_lines:,}")
-                if days_limit > 0:
-                    print(f"  • فیلتر شده (قدیمی): {filtered_lines:,}")
-                    print(f"  • در بازه زمانی مورد نظر: {len(self.logs):,}")
-                else:
-                    print(f"  • بارگذاری شده: {len(self.logs):,}")
-                print(f"  • نادیده گرفته: {total_lines - parsed_lines:,}")
-
-                # نمایش بازه زمانی واقعی لاگ‌های بارگذاری شده
-                if self.logs:
-                    date_range = {
-                        'start': min(log['datetime'] for log in self.logs),
-                        'end': max(log['datetime'] for log in self.logs)
+                    file_stats[Path(log_file).name] = {
+                        'total': file_total,
+                        'parsed': file_parsed,
+                        'filtered': file_filtered,
+                        'loaded': file_parsed - file_filtered
                     }
-                    print(f"  • بازه زمانی: {date_range['start'].strftime('%Y-%m-%d')} تا {date_range['end'].strftime('%Y-%m-%d')}")
 
-                break
+                    print(f"    ✓ {Path(log_file).name}:")
+                    print(f"      کل خطوط: {file_total:,}")
+                    print(f"      پارس شده: {file_parsed:,}")
+                    if days_limit > 0:
+                        print(f"      فیلتر شده: {file_filtered:,}")
+                        print(f"      بارگذاری شده: {file_parsed - file_filtered:,}")
 
-            except UnicodeDecodeError:
-                if encoding == encodings[-1]:
-                    print(f"❌ خطا در خواندن فایل")
-                    return []
-                continue
-            
+                    break
+
+                except UnicodeDecodeError:
+                    if encoding == encodings[-1]:
+                        print(f"    ❌ خطا در خواندن {Path(log_file).name}")
+                    continue
+                
+        # مرتب‌سازی لاگ‌ها بر اساس زمان
+        self.logs.sort(key=lambda x: x['datetime'])
+
+        # نمایش خلاصه نهایی
+        print(f"\n✅ بارگذاری کامل:")
+        print(f"  • تعداد فایل‌ها: {len(log_files)}")
+        print(f"  • کل خطوط: {total_lines:,}")
+        print(f"  • پارس شده: {parsed_lines:,}")
+        if days_limit > 0:
+            print(f"  • فیلتر شده (قدیمی): {filtered_lines:,}")
+            print(f"  • در بازه زمانی: {len(self.logs):,}")
+        else:
+            print(f"  • بارگذاری شده: {len(self.logs):,}")
+        print(f"  • نادیده گرفته: {total_lines - parsed_lines:,}")
+
+        # نمایش بازه زمانی واقعی
+        if self.logs:
+            date_range = {
+                'start': min(log['datetime'] for log in self.logs),
+                'end': max(log['datetime'] for log in self.logs)
+            }
+            print(f"  • بازه زمانی: {date_range['start'].strftime('%Y-%m-%d')} تا {date_range['end'].strftime('%Y-%m-%d')}")
+
+        # نمایش آمار هر فایل
+        if len(file_stats) > 1:
+            print(f"\n📊 آمار فایل‌ها:")
+            for filename, stats in file_stats.items():
+                print(f"  • {filename}: {stats['loaded']:,} لاگ")
+
+        # حذف فایل‌های موقت
+        self._cleanup_temp_files()
+
         return self.logs
+    
+    def _cleanup_temp_files(self):
+        """پاکسازی فایل‌های موقت استخراج شده"""
+        extract_dir = Path('extracted_logs')
+        if extract_dir.exists():
+            try:
+                import shutil
+                shutil.rmtree(extract_dir)
+                print("🧹 فایل‌های موقت پاکسازی شدند")
+            except Exception as e:
+                print(f"⚠️ خطا در پاکسازی فایل‌های موقت: {e}")
 
     def calculate_ip_risk_score(self, ip: str) -> Dict:
         """محاسبه امتیاز ریسک برای هر IP"""
