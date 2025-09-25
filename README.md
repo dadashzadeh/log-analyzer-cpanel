@@ -1,7 +1,7 @@
 # 🔒 Advanced Security Log Analyzer
 
 language :
-- [persian](https://github.com/dadashzadeh/log-analyzer-cpanel/fa.md)
+- [persian](/fa.md)
 - [en](https://github.com/dadashzadeh/log-analyzer-cpanel)
 
 [](https://www.python.org/)
