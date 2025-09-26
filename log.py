@@ -22,6 +22,7 @@ import urllib.parse
 import base64
 import hashlib
 from typing import Dict, List, Tuple, Set, Any
+import sys
 
 class GoogleBotVerifier:
     """کلاس تایید بات‌های گوگل با فایل‌های رسمی"""
@@ -38,12 +39,14 @@ class GoogleBotVerifier:
     def load_google_ip_files(self):
         """بارگذاری فایل‌های JSON گوگل"""
         json_files = {
-            'googlebot': 'googlebot.json',
-            'special_crawlers': 'special-crawlers.json',
-            'user_triggered': 'user-triggered-fetchers.json',
-            'user_triggered_google': 'user-triggered-fetchers-google.json'
+            'googlebot': 'iplists/googlebot.json',  # تغییر مسیر
+            'special_crawlers': 'iplists/special-crawlers.json',
+            'user_triggered': 'iplists/user-triggered-fetchers.json',
+            'user_triggered_google': 'iplists/user-triggered-fetchers-google.json'
         }
-        
+
+        total_ranges = 0
+
         for key, filename in json_files.items():
             if os.path.exists(filename):
                 try:
@@ -59,10 +62,16 @@ class GoogleBotVerifier:
                                     self.google_ip_ranges[key].append(
                                         ipaddress.IPv6Network(prefix['ipv6Prefix'])
                                     )
-                    print(f"✅ {filename}: {len(self.google_ip_ranges[key])} رنج IP")
+                        range_count = len(self.google_ip_ranges[key])
+                        total_ranges += range_count
+                        print(f"✅ {filename}: {range_count} رنج IP")
                 except Exception as e:
                     print(f"⚠️ خطا در {filename}: {e}")
-    
+            else:
+                print(f"❌ فایل {filename} یافت نشد!")
+
+        print(f"📊 مجموع IP ranges بارگذاری شده برای Google: {total_ranges}")
+  
     def verify_google_bot(self, ip_str, user_agent):
         """تایید هویت بات گوگل"""
         result = {
@@ -188,7 +197,7 @@ class AdvancedSecurityAnalyzer:
                 'ip_ranges': []
             },
             'DuckDuckGo': {
-                'patterns': ['duckassistbot'],
+                'patterns': ['DuckDuckBot', 'duckassistbot', 'duckduckgo'],
                 'dns_suffix': ['.duckduckgo.com'],
                 'ip_ranges': []
             },
@@ -255,7 +264,7 @@ class AdvancedSecurityAnalyzer:
             'SemRush': {
                 'patterns': ['semrushbot'],
                 'dns_suffix': ['.semrush.com'],
-                'ip_ranges': []
+                'ip_ranges': ['85.208.98.32/28', '85.208.98.48/28']
             },
             'Ahrefs': {
                 'patterns': ['ahrefsbot'],
@@ -288,7 +297,7 @@ class AdvancedSecurityAnalyzer:
 
         
         # بارگذاری IPهای Bing از فایل bingbot.json
-        bingbot_file = 'bingbot.json'
+        bingbot_file = 'iplists/bingbot.json'
         if os.path.exists(bingbot_file):
             try:
                 with open(bingbot_file, 'r') as f:
@@ -304,7 +313,7 @@ class AdvancedSecurityAnalyzer:
                 print(f"⚠️ خطا در بارگذاری bingbot.json: {e}")
 
         # بارگذاری IPهای OpenAI از فایل gptbot.json
-        openai_file = 'gptbot.json'
+        openai_file = 'iplists/gptbot.json'
         if os.path.exists(openai_file):
             try:
                 with open(openai_file, 'r') as f:
@@ -320,7 +329,7 @@ class AdvancedSecurityAnalyzer:
                 print(f"⚠️ خطا در بارگذاری gptbot.json: {e}")
 
         # بارگذاری IPهای Perplexity Bot از فایل perplexitybot.json
-        perplexity_bot_file = 'perplexitybot.json'
+        perplexity_bot_file = 'iplists/perplexitybot.json'
         if os.path.exists(perplexity_bot_file):
             try:
                 with open(perplexity_bot_file, 'r') as f:
@@ -336,7 +345,7 @@ class AdvancedSecurityAnalyzer:
                 print(f"⚠️ خطا در بارگذاری perplexitybot.json: {e}")
 
         # بارگذاری IPهای Perplexity User از فایل perplexity-user.json
-        perplexity_user_file = 'perplexity-user.json'
+        perplexity_user_file = 'iplists/perplexity-user.json'
         if os.path.exists(perplexity_user_file):
             try:
                 with open(perplexity_user_file, 'r') as f:
@@ -352,7 +361,7 @@ class AdvancedSecurityAnalyzer:
                 print(f"⚠️ خطا در بارگذاری perplexity-user.json: {e}")
 
         # بارگذاری IPهای Google Cloud از فایل cloud.json
-        cloud_file = 'cloud.json'
+        cloud_file = 'iplists/cloud.json'
         if os.path.exists(cloud_file):
             try:
                 with open(cloud_file, 'r') as f:
@@ -367,6 +376,38 @@ class AdvancedSecurityAnalyzer:
             except Exception as e:
                 print(f"⚠️ خطا در بارگذاری cloud.json: {e}")
 
+        # اضافه کردن DuckDuckGo
+        duckduckgo_file = 'iplists/duckduckbot.json'
+        if os.path.exists(duckduckgo_file):
+            try:
+                with open(duckduckgo_file, 'r') as f:
+                    data = json.load(f)
+                    if 'prefixes' in data:
+                        for prefix in data['prefixes']:
+                            if 'ipv4Prefix' in prefix:
+                                self.legitimate_bots['DuckDuckGo']['ip_ranges'].append(prefix['ipv4Prefix'])
+                            elif 'ipv6Prefix' in prefix:
+                                self.legitimate_bots['DuckDuckGo']['ip_ranges'].append(prefix['ipv6Prefix'])
+                print(f"✅ duckduckbot.json: {len(self.legitimate_bots['DuckDuckGo']['ip_ranges'])} رنج IP")
+            except Exception as e:
+                print(f"⚠️ خطا در بارگذاری duckduckbot.json: {e}")
+        
+        # اضافه کردن Ahrefs
+        ahrefs_file = 'iplists/ahrefsbot.json'
+        if os.path.exists(ahrefs_file):
+            try:
+                with open(ahrefs_file, 'r') as f:
+                    data = json.load(f)
+                    if 'prefixes' in data:
+                        for prefix in data['prefixes']:
+                            if 'ipv4Prefix' in prefix:
+                                self.legitimate_bots['Ahrefs']['ip_ranges'].append(prefix['ipv4Prefix'])
+                            elif 'ipv6Prefix' in prefix:
+                                self.legitimate_bots['Ahrefs']['ip_ranges'].append(prefix['ipv6Prefix'])
+                print(f"✅ ahrefsbot.json: {len(self.legitimate_bots['Ahrefs']['ip_ranges'])} رنج IP")
+            except Exception as e:
+                print(f"⚠️ خطا در بارگذاری ahrefsbot.json: {e}")
+        
         # تنظیمات امنیتی
         self.security_thresholds = {
             'requests_per_minute': 30,
@@ -793,35 +834,41 @@ class AdvancedSecurityAnalyzer:
         print("\n" + "="*60)
         print("📅 انتخاب بازه زمانی برای تحلیل:")
         print("-"*60)
-        print("1. یک ماه اخیر")
-        print("2. دو ماه اخیر") 
-        print("3. سه ماه اخیر")
-        print("4. شش ماه اخیر")
-        print("5. دوازده ماه اخیر")
-        print("6. کل لاگ‌ها (بدون محدودیت زمانی)")
+        print("1. یک روز اخیر")
+        print("2. یک هفته اخیر")
+        print("3. یک ماه اخیر")
+        print("4. دو ماه اخیر") 
+        print("5. سه ماه اخیر")
+        print("6. شش ماه اخیر")
+        print("7. دوازده ماه اخیر")
+        print("8. کل لاگ‌ها (بدون محدودیت زمانی)")
         print("-"*60)
 
         while True:
             try:
-                choice = input("🔢 گزینه مورد نظر را انتخاب کنید (1-6): ").strip()
-                if choice in ['1', '2', '3', '4', '5', '6']:
+                choice = input("🔢 گزینه مورد نظر را انتخاب کنید (1-8): ").strip()
+                if choice in ['1', '2', '3', '4', '5', '6', '7', '8']:
                     # تبدیل به تعداد روز
                     days_map = {
-                        '1': 30,    # 1 ماه
-                        '2': 60,    # 2 ماه
-                        '3': 90,    # 3 ماه
-                        '4': 180,   # 6 ماه
-                        '5': 365,   # 12 ماه
-                        '6': 0      # کل (بدون محدودیت)
+                        '1': 1,    # 1 روز
+                        '2': 7,    # 7 روز
+                        '3': 30,    # 1 ماه
+                        '4': 60,    # 2 ماه
+                        '5': 90,    # 3 ماه
+                        '6': 180,   # 6 ماه
+                        '7': 365,   # 12 ماه
+                        '8': 0      # کل (بدون محدودیت)
                     }
 
                     period_names = {
-                        '1': 'یک ماه اخیر',
-                        '2': 'دو ماه اخیر',
-                        '3': 'سه ماه اخیر',
-                        '4': 'شش ماه اخیر',
-                        '5': 'دوازده ماه اخیر',
-                        '6': 'کل لاگ‌ها'
+                        '1': 'یک روز اخیر',
+                        '2': 'یک هفته اخیر',
+                        '3': 'یک ماه اخیر',
+                        '4': 'دو ماه اخیر',
+                        '5': 'سه ماه اخیر',
+                        '6': 'شش ماه اخیر',
+                        '7': 'دوازده ماه اخیر',
+                        '8': 'کل لاگ‌ها'
                     }
 
                     print(f"\n✅ بازه انتخاب شده: {period_names[choice]}")
@@ -1140,6 +1187,15 @@ class AdvancedSecurityAnalyzer:
         from collections import defaultdict, Counter
 
         print("    ⚡ استفاده از Threading برای تحلیل سریع بات‌ها (بدون DNS)...")
+
+        # کپی کردن داده‌های مورد نیاز برای دسترسی در thread ها
+        google_verifier = self.google_verifier  
+        legitimate_bots = self.legitimate_bots.copy()  
+
+        # Debug: بررسی Google IP ranges
+        google_ranges_count = sum(len(ranges) for ranges in google_verifier.google_ip_ranges.values())
+        print(f"    📊 تعداد Google IP ranges بارگذاری شده: {google_ranges_count}")
+
         start_time = time.time()
 
         # ساختار نتایج با thread-safe locks
@@ -1152,7 +1208,7 @@ class AdvancedSecurityAnalyzer:
                 'unique_urls': set(), 
                 'first_seen': None, 
                 'last_seen': None,
-                'ip_requests': defaultdict(int)  # اضافه شده: شمارش درخواست هر IP
+                'ip_requests': defaultdict(int)
             }),
             'potentially_legitimate': defaultdict(lambda: {
                 'ips': set(), 
@@ -1160,7 +1216,7 @@ class AdvancedSecurityAnalyzer:
                 'unique_urls': set(), 
                 'first_seen': None, 
                 'last_seen': None,
-                'ip_requests': defaultdict(int)  # اضافه شده
+                'ip_requests': defaultdict(int)
             }),
             'fake': defaultdict(lambda: {
                 'ips': set(), 
@@ -1169,7 +1225,7 @@ class AdvancedSecurityAnalyzer:
                 'patterns': Counter(), 
                 'first_seen': None, 
                 'last_seen': None,
-                'ip_requests': defaultdict(int)  # اضافه شده
+                'ip_requests': defaultdict(int)
             }),
             'unknown': {
                 'ips': set(), 
@@ -1178,9 +1234,9 @@ class AdvancedSecurityAnalyzer:
                 'unique_urls': set(), 
                 'first_seen': None, 
                 'last_seen': None,
-                'ip_requests': defaultdict(int)  # اضافه شده
+                'ip_requests': defaultdict(int)
             },
-            'bot_activity': defaultdict(lambda: defaultdict(int)),  # مطمئن شدن از وجود
+            'bot_activity': defaultdict(lambda: defaultdict(int)),
             'bot_traffic_distribution': defaultdict(lambda: defaultdict(int)),
             'bot_ip_distribution': defaultdict(lambda: defaultdict(int))
         }
@@ -1191,6 +1247,8 @@ class AdvancedSecurityAnalyzer:
 
         def process_log_chunk(logs_chunk, chunk_id):
             """پردازش یک بخش از لاگ‌ها بدون DNS"""
+            nonlocal processed_count
+
             local_results = {
                 'legitimate': defaultdict(lambda: {
                     'ips': set(), 
@@ -1198,7 +1256,7 @@ class AdvancedSecurityAnalyzer:
                     'unique_urls': set(), 
                     'first_seen': None, 
                     'last_seen': None,
-                    'ip_requests': defaultdict(int)  # اضافه شده
+                    'ip_requests': defaultdict(int)
                 }),
                 'potentially_legitimate': defaultdict(lambda: {
                     'ips': set(), 
@@ -1206,7 +1264,7 @@ class AdvancedSecurityAnalyzer:
                     'unique_urls': set(), 
                     'first_seen': None, 
                     'last_seen': None,
-                    'ip_requests': defaultdict(int)  # اضافه شده
+                    'ip_requests': defaultdict(int)
                 }),
                 'fake': defaultdict(lambda: {
                     'ips': set(), 
@@ -1215,7 +1273,7 @@ class AdvancedSecurityAnalyzer:
                     'patterns': Counter(), 
                     'first_seen': None, 
                     'last_seen': None,
-                    'ip_requests': defaultdict(int)  # اضافه شده
+                    'ip_requests': defaultdict(int)
                 }),
                 'unknown': {
                     'ips': set(), 
@@ -1224,7 +1282,7 @@ class AdvancedSecurityAnalyzer:
                     'unique_urls': set(), 
                     'first_seen': None, 
                     'last_seen': None,
-                    'ip_requests': defaultdict(int)  # اضافه شده
+                    'ip_requests': defaultdict(int)
                 },
                 'bot_activity': defaultdict(lambda: defaultdict(int)),
                 'bot_traffic_distribution': defaultdict(lambda: defaultdict(int))
@@ -1238,6 +1296,7 @@ class AdvancedSecurityAnalyzer:
                 ua = log['user_agent']
                 url = log['url']
                 dt = log['datetime']
+                status_code = log['status_code']
                 ua_lower = ua.lower()
 
                 # کلید کش
@@ -1246,134 +1305,115 @@ class AdvancedSecurityAnalyzer:
                 # چک کش محلی
                 if cache_key in local_ip_cache:
                     bot_type, bot_category = local_ip_cache[cache_key]
+                else:
+                    # تشخیص نوع بات بدون DNS
+                    identified = False
+                    bot_type = None
+                    bot_category = None
 
-                    if bot_category == 'legitimate':
-                        local_results['legitimate'][bot_type]['ips'].add(ip)
-                        local_results['legitimate'][bot_type]['requests'] += 1
-                        local_results['legitimate'][bot_type]['ip_requests'][ip] += 1  # اضافه شده
-                        local_results['legitimate'][bot_type]['unique_urls'].add(url)
-                        if not local_results['legitimate'][bot_type]['first_seen'] or dt < local_results['legitimate'][bot_type]['first_seen']:
-                            local_results['legitimate'][bot_type]['first_seen'] = dt
-                        if not local_results['legitimate'][bot_type]['last_seen'] or dt > local_results['legitimate'][bot_type]['last_seen']:
-                            local_results['legitimate'][bot_type]['last_seen'] = dt
-                        local_results['bot_activity'][url][bot_type] += 1
-                        local_results['bot_traffic_distribution'][bot_type][dt.hour] += 1
+                    # بررسی بات گوگل با GoogleBotVerifier - مهم: استفاده از متغیر محلی
+                    google_result = google_verifier.verify_google_bot(ip, ua)  # تغییر یافته!
+                    if google_result['is_google']:
+                        bot_type = 'Google'
+                        bot_category = 'legitimate'
+                        identified = True
 
-                    elif bot_category == 'potentially_legitimate':
-                        local_results['potentially_legitimate'][bot_type]['ips'].add(ip)
-                        local_results['potentially_legitimate'][bot_type]['requests'] += 1
-                        local_results['potentially_legitimate'][bot_type]['ip_requests'][ip] += 1  # اضافه شده
-                        local_results['potentially_legitimate'][bot_type]['unique_urls'].add(url)
-                        local_results['bot_activity'][url][bot_type] += 1
-                        local_results['bot_traffic_distribution'][bot_type][dt.hour] += 1
+                        # Debug فقط برای چند مورد اول
+                        with progress_lock:
+                            if processed_count < 20:
+                                print(f"      ✅ Google bot identified: {ip} - {google_result['verification_method']}")
 
-                    elif bot_category == 'fake':
-                        local_results['fake'][bot_type]['ips'].add(ip)
-                        local_results['fake'][bot_type]['requests'] += 1
-                        local_results['fake'][bot_type]['ip_requests'][ip] += 1  # اضافه شده
-                        local_results['fake'][bot_type]['user_agents'][ua] += 1
-                        local_results['bot_activity'][url][bot_type] += 1
-                        local_results['bot_traffic_distribution'][bot_type][dt.hour] += 1
+                    # بررسی سایر بات‌های معتبر
+                    if not identified:
+                        for bot_name, bot_info in legitimate_bots.items():  # تغییر یافته!
+                            if bot_name == 'Google':  # قبلاً بررسی شده
+                                continue
 
-                    else:  # unknown
-                        local_results['unknown']['ips'].add(ip)
-                        local_results['unknown']['requests'] += 1
-                        local_results['unknown']['ip_requests'][ip] += 1  # اضافه شده
-                        local_results['unknown']['unique_urls'].add(url)
-                        local_results['bot_activity'][url]['Unknown'] += 1
-                        local_results['bot_traffic_distribution']['Unknown'][dt.hour] += 1
+                            if not bot_info['patterns']:
+                                continue
+                            
+                            # بررسی User-Agent
+                            ua_matches = any(pattern in ua_lower for pattern in bot_info['patterns'])
 
-                    continue
-                
-                # ... (بقیه کد تشخیص بات که قبلاً بود)
-
-                # تشخیص نوع بات بدون DNS
-                identified = False
-                bot_type = None
-                bot_category = None
-
-                # بررسی بات‌های معتبر
-                for bot_name, bot_info in self.legitimate_bots.items():
-                    if not bot_info['patterns']:
-                        continue
-
-                    # بررسی User-Agent
-                    if any(pattern in ua_lower for pattern in bot_info['patterns']):
-                        # بررسی IP range اگر موجود باشد
-                        ip_matches = False
-                        if bot_info['ip_ranges']:
-                            try:
-                                ip_obj = ipaddress.ip_address(ip)
-                                # فقط 5 range اول را چک کن برای سرعت
-                                for ip_range in bot_info['ip_ranges'][:5]:
+                            if ua_matches:
+                                # بررسی IP range اگر موجود باشد
+                                ip_matches = False
+                                if bot_info['ip_ranges']:
                                     try:
-                                        if '/' in ip_range:
-                                            network = ipaddress.ip_network(ip_range, strict=False)
-                                            if ip_obj in network:
-                                                ip_matches = True
-                                                break
+                                        ip_obj = ipaddress.ip_address(ip)
+                                        # بررسی تمام IP ranges
+                                        for ip_range in bot_info['ip_ranges']:
+                                            try:
+                                                if '/' in ip_range:
+                                                    network = ipaddress.ip_network(ip_range, strict=False)
+                                                    if ip_obj in network:
+                                                        ip_matches = True
+                                                        break
+                                            except:
+                                                continue
+
+                                        if ip_matches:
+                                            bot_type = bot_name
+                                            bot_category = 'legitimate'
+                                        else:
+                                            # UA درست، IP غلط
+                                            bot_type = bot_name
+                                            bot_category = 'potentially_legitimate'
                                     except:
-                                        continue
-                                    
-                                if ip_matches:
+                                        # در صورت خطا، فقط بر اساس UA
+                                        bot_type = bot_name
+                                        bot_category = 'legitimate'
+                                else:
+                                    # اگر IP range نداریم، فقط بر اساس UA
                                     bot_type = bot_name
                                     bot_category = 'legitimate'
-                                else:
-                                    # UA درست، IP غلط
-                                    bot_type = bot_name
-                                    bot_category = 'potentially_legitimate'
-                            except:
-                                # در صورت خطا، فقط بر اساس UA
-                                bot_type = bot_name
-                                bot_category = 'legitimate'
-                        else:
-                            # اگر IP range نداریم، فقط بر اساس UA
-                            bot_type = bot_name
-                            bot_category = 'legitimate'
 
-                        identified = True
-                        break
-                    
-                # بررسی بات‌های جعلی
-                if not identified:
-                    # ابزارهای هک
-                    for tool in ['nikto', 'sqlmap', 'nmap', 'burp', 'acunetix', 'wpscan', 'metasploit', 
-                                'python-requests', 'curl/', 'wget/', 'libwww-perl', 'python/', 'scrapy']:
-                        if tool in ua_lower:
-                            bot_type = f"Hacking Tool: {tool}"
-                            bot_category = 'fake'
-                            identified = True
-                            break
-                        
-                    # User-Agent خالی یا مشکوک
+                                identified = True
+                                break
+
+                    # بررسی بات‌های جعلی
                     if not identified:
-                        if ua == '-' or len(ua) < 5:
-                            bot_type = "Empty/Invalid UA"
-                            bot_category = 'fake'
-                            identified = True
-                        elif any(word in ua_lower for word in ['bot', 'crawler', 'spider', 'scraper']):
-                            # بات‌های مشکوک که در لیست معتبر نیستند
-                            for legit_bot in self.legitimate_bots.keys():
-                                if legit_bot.lower() in ua_lower:
-                                    break
-                            else:
-                                bot_type = "Suspicious Bot"
+                        # ابزارهای هک
+                        hacking_tools = ['nikto', 'sqlmap', 'nmap', 'burp', 'acunetix', 'wpscan', 'metasploit', 
+                                        'python-requests', 'curl/', 'wget/', 'libwww-perl', 'python/', 'scrapy']
+                        for tool in hacking_tools:
+                            if tool in ua_lower:
+                                bot_type = f"Hacking Tool: {tool}"
                                 bot_category = 'fake'
                                 identified = True
+                                break
+                            
+                        # User-Agent خالی یا مشکوک
+                        if not identified:
+                            if ua == '-' or len(ua) < 5:
+                                bot_type = "Empty/Invalid UA"
+                                bot_category = 'fake'
+                                identified = True
+                            elif any(word in ua_lower for word in ['bot', 'crawler', 'spider', 'scraper']):
+                                # بات‌های مشکوک که در لیست معتبر نیستند
+                                is_legit = False
+                                for legit_bot in legitimate_bots.keys():
+                                    if legit_bot.lower() in ua_lower:
+                                        is_legit = True
+                                        break
+                                if not is_legit:
+                                    bot_type = "Suspicious Bot"
+                                    bot_category = 'fake'
+                                    identified = True
 
-                # اگر شناسایی نشد، ناشناس است
-                if not identified:
-                    bot_type = 'Unknown'
-                    bot_category = 'unknown'
+                    # اگر شناسایی نشد، ناشناس است
+                    if not identified:
+                        bot_type = 'Unknown'
+                        bot_category = 'unknown'
 
-                # ذخیره در کش محلی
-                local_ip_cache[cache_key] = (bot_type, bot_category)
+                    # ذخیره در کش محلی
+                    local_ip_cache[cache_key] = (bot_type, bot_category)
 
-                # ذخیره داده‌ها بر اساس دسته‌بندی
+                # ذخیره داده‌ها بر اساس دسته‌بندی - این بخش خیلی مهم است!
                 if bot_category == 'legitimate':
                     local_results['legitimate'][bot_type]['ips'].add(ip)
                     local_results['legitimate'][bot_type]['requests'] += 1
-                    local_results['legitimate'][bot_type]['ip_requests'][ip] += 1  # اضافه شده
+                    local_results['legitimate'][bot_type]['ip_requests'][ip] += 1
                     local_results['legitimate'][bot_type]['unique_urls'].add(url)
                     if not local_results['legitimate'][bot_type]['first_seen'] or dt < local_results['legitimate'][bot_type]['first_seen']:
                         local_results['legitimate'][bot_type]['first_seen'] = dt
@@ -1385,7 +1425,7 @@ class AdvancedSecurityAnalyzer:
                 elif bot_category == 'potentially_legitimate':
                     local_results['potentially_legitimate'][bot_type]['ips'].add(ip)
                     local_results['potentially_legitimate'][bot_type]['requests'] += 1
-                    local_results['potentially_legitimate'][bot_type]['ip_requests'][ip] += 1  # اضافه شده
+                    local_results['potentially_legitimate'][bot_type]['ip_requests'][ip] += 1
                     local_results['potentially_legitimate'][bot_type]['unique_urls'].add(url)
                     if not local_results['potentially_legitimate'][bot_type]['first_seen'] or dt < local_results['potentially_legitimate'][bot_type]['first_seen']:
                         local_results['potentially_legitimate'][bot_type]['first_seen'] = dt
@@ -1397,7 +1437,7 @@ class AdvancedSecurityAnalyzer:
                 elif bot_category == 'fake':
                     local_results['fake'][bot_type]['ips'].add(ip)
                     local_results['fake'][bot_type]['requests'] += 1
-                    local_results['fake'][bot_type]['ip_requests'][ip] += 1  # اضافه شده
+                    local_results['fake'][bot_type]['ip_requests'][ip] += 1
                     local_results['fake'][bot_type]['user_agents'][ua] += 1
                     local_results['fake'][bot_type]['patterns'][ua_lower] += 1
                     if not local_results['fake'][bot_type]['first_seen'] or dt < local_results['fake'][bot_type]['first_seen']:
@@ -1410,7 +1450,7 @@ class AdvancedSecurityAnalyzer:
                 else:  # unknown
                     local_results['unknown']['ips'].add(ip)
                     local_results['unknown']['requests'] += 1
-                    local_results['unknown']['ip_requests'][ip] += 1  # اضافه شده
+                    local_results['unknown']['ip_requests'][ip] += 1
                     local_results['unknown']['user_agents'][ua] += 1
                     local_results['unknown']['unique_urls'].add(url)
                     if not local_results['unknown']['first_seen'] or dt < local_results['unknown']['first_seen']:
@@ -1421,7 +1461,6 @@ class AdvancedSecurityAnalyzer:
                     local_results['bot_traffic_distribution']['Unknown'][dt.hour] += 1
 
             # آپدیت progress
-            nonlocal processed_count
             with progress_lock:
                 processed_count += len(logs_chunk)
                 progress = (processed_count / len(self.logs)) * 100
@@ -1436,8 +1475,19 @@ class AdvancedSecurityAnalyzer:
         def merge_results(main_results, chunk_results):
             """ادغام نتایج chunk با نتایج اصلی"""
             with result_lock:
-                # ادغام legitimate
+                # ادغام legitimate - بسیار مهم!
                 for bot_name, data in chunk_results['legitimate'].items():
+                    # اطمینان از وجود کلید در main_results
+                    if bot_name not in main_results['legitimate']:
+                        main_results['legitimate'][bot_name] = {
+                            'ips': set(),
+                            'requests': 0,
+                            'unique_urls': set(),
+                            'first_seen': None,
+                            'last_seen': None,
+                            'ip_requests': defaultdict(int)
+                        }
+
                     main_results['legitimate'][bot_name]['ips'].update(data['ips'])
                     main_results['legitimate'][bot_name]['requests'] += data['requests']
                     main_results['legitimate'][bot_name]['unique_urls'].update(data['unique_urls'])
@@ -1456,6 +1506,16 @@ class AdvancedSecurityAnalyzer:
 
                 # ادغام potentially_legitimate
                 for bot_name, data in chunk_results['potentially_legitimate'].items():
+                    if bot_name not in main_results['potentially_legitimate']:
+                        main_results['potentially_legitimate'][bot_name] = {
+                            'ips': set(),
+                            'requests': 0,
+                            'unique_urls': set(),
+                            'first_seen': None,
+                            'last_seen': None,
+                            'ip_requests': defaultdict(int)
+                        }
+
                     main_results['potentially_legitimate'][bot_name]['ips'].update(data['ips'])
                     main_results['potentially_legitimate'][bot_name]['requests'] += data['requests']
                     main_results['potentially_legitimate'][bot_name]['unique_urls'].update(data['unique_urls'])
@@ -1474,6 +1534,17 @@ class AdvancedSecurityAnalyzer:
 
                 # ادغام fake
                 for fake_type, data in chunk_results['fake'].items():
+                    if fake_type not in main_results['fake']:
+                        main_results['fake'][fake_type] = {
+                            'ips': set(),
+                            'requests': 0,
+                            'user_agents': Counter(),
+                            'patterns': Counter(),
+                            'first_seen': None,
+                            'last_seen': None,
+                            'ip_requests': defaultdict(int)
+                        }
+
                     main_results['fake'][fake_type]['ips'].update(data['ips'])
                     main_results['fake'][fake_type]['requests'] += data['requests']
 
@@ -1527,8 +1598,8 @@ class AdvancedSecurityAnalyzer:
 
         # تقسیم لاگ‌ها به chunk ها
         total_logs = len(self.logs)
-        chunk_size = 3000  # اندازه کوچکتر برای سرعت بیشتر
-        num_workers = min(16, max(4, (total_logs // chunk_size) + 1))  # بین 4 تا 16 thread
+        chunk_size = 3000
+        num_workers = min(16, max(4, (total_logs // chunk_size) + 1))
 
         chunks = [self.logs[i:i+chunk_size] for i in range(0, total_logs, chunk_size)]
         print(f"      تعداد chunks: {len(chunks)}, تعداد workers: {num_workers}")
@@ -1555,6 +1626,8 @@ class AdvancedSecurityAnalyzer:
 
                 except Exception as e:
                     print(f"      ⚠️ خطا در پردازش chunk: {e}")
+                    import traceback
+                    traceback.print_exc()
 
         # محاسبه آمار نهایی
         print("      📊 محاسبه آمار نهایی...")
@@ -1566,7 +1639,7 @@ class AdvancedSecurityAnalyzer:
 
             # محاسبه top URLs
             top_urls = []
-            if 'bot_activity' in bot_analysis:  # بررسی وجود کلید
+            if 'bot_activity' in bot_analysis:
                 for url, bots_dict in bot_analysis['bot_activity'].items():
                     if bot_type in bots_dict:
                         top_urls.append((url, bots_dict[bot_type]))
@@ -1585,7 +1658,7 @@ class AdvancedSecurityAnalyzer:
 
             # محاسبه top URLs
             top_urls = []
-            if 'bot_activity' in bot_analysis:  # بررسی وجود کلید
+            if 'bot_activity' in bot_analysis:
                 for url, bots_dict in bot_analysis['bot_activity'].items():
                     if bot_type in bots_dict:
                         top_urls.append((url, bots_dict[bot_type]))
@@ -1598,7 +1671,7 @@ class AdvancedSecurityAnalyzer:
 
         # محاسبه top URLs برای unknown
         unknown_urls = []
-        if 'bot_activity' in bot_analysis:  # بررسی وجود کلید
+        if 'bot_activity' in bot_analysis:
             for url, bots_dict in bot_analysis['bot_activity'].items():
                 if 'Unknown' in bots_dict:
                     unknown_urls.append((url, bots_dict['Unknown']))
@@ -1614,6 +1687,12 @@ class AdvancedSecurityAnalyzer:
         total_unknown_requests = bot_analysis['unknown']['requests']
 
         print(f"      📊 خلاصه: معتبر: {total_bot_requests:,} | احتمالی: {total_potentially:,} | جعلی: {total_fake_requests:,} | ناشناس: {total_unknown_requests:,}")
+
+        # Debug - نمایش نمونه بات‌های شناسایی شده
+        if bot_analysis['legitimate']:
+            print("\n      ✅ بات‌های معتبر شناسایی شده:")
+            for bot_name, data in list(bot_analysis['legitimate'].items())[:5]:
+                print(f"        • {bot_name}: {data['requests']} requests, {data['ips_count']} IPs")
 
         return bot_analysis
 
@@ -1810,82 +1889,97 @@ class AdvancedSecurityAnalyzer:
 
             # Legitimate bots
             for company, bot_info in analysis['bot_analysis']['legitimate'].items():
-                # برای هر IP جداگانه
-                for ip in list(bot_info.get('ips', set()))[:100]:
-                    # محاسبه تعداد درخواست این IP برای این بات
-                    ip_request_count = 0
-                    for log in self.logs:
-                        if log['ip'] == ip:
-                            ua_lower = log['user_agent'].lower()
-                            if any(pattern in ua_lower for pattern in self.legitimate_bots.get(company, {}).get('patterns', [])):
-                                ip_request_count += 1
+                # استفاده از ip_requests که قبلاً محاسبه شده
+                ip_requests = bot_info.get('ip_requests', {})
 
-                    bot_data.append({
-                        'Type': 'Legitimate',
-                        'Company': company,
-                        'IP': ip,
-                        'Verification': 'VERIFIED',
-                        'Bot Type': company,
-                        'Requests': ip_request_count  # تعداد واقعی درخواست این IP
-                    })
+                if ip_requests:
+                    for ip, request_count in ip_requests.items():
+                        if request_count > 0:
+                            bot_data.append({
+                                'Type': 'Legitimate',
+                                'Company': company,
+                                'IP': ip,
+                                'Verification': 'VERIFIED',
+                                'Bot Type': company,
+                                'Requests': request_count
+                            })
+                else:
+                    # اگر ip_requests خالی است ولی ips موجود است
+                    if bot_info.get('ips'):
+                        print(f"    Warning: {company} has IPs but no ip_requests data")
 
-            # Potentially legitimate bots
+            # Potentially legitimate bots  
             if 'potentially_legitimate' in analysis['bot_analysis']:
                 for company, bot_info in analysis['bot_analysis']['potentially_legitimate'].items():
-                    for ip in list(bot_info.get('ips', set()))[:100]:
-                        # محاسبه تعداد درخواست این IP
-                        ip_request_count = 0
-                        for log in self.logs:
-                            if log['ip'] == ip:
-                                ua_lower = log['user_agent'].lower()
-                                if any(pattern in ua_lower for pattern in self.legitimate_bots.get(company, {}).get('patterns', [])):
-                                    ip_request_count += 1
+                    ip_requests = bot_info.get('ip_requests', {})
 
-                        bot_data.append({
-                            'Type': 'Potentially Legitimate',
-                            'Company': company,
-                            'IP': ip,
-                            'Verification': 'PARTIAL',
-                            'Bot Type': company,
-                            'Requests': ip_request_count
-                        })
+                    if ip_requests:
+                        for ip, request_count in ip_requests.items():
+                            if request_count > 0:
+                                bot_data.append({
+                                    'Type': 'Potentially Legitimate',
+                                    'Company': company,
+                                    'IP': ip,
+                                    'Verification': 'PARTIAL',
+                                    'Bot Type': company,
+                                    'Requests': request_count
+                                })
 
             # Fake bots
             for bot_type, bot_info in analysis['bot_analysis']['fake'].items():
-                for ip in list(bot_info.get('ips', set()))[:100]:
-                    # محاسبه تعداد درخواست این IP
-                    ip_request_count = sum(1 for log in self.logs if log['ip'] == ip)
+                ip_requests = bot_info.get('ip_requests', {})
 
-                    bot_data.append({
-                        'Type': 'FAKE',
-                        'Company': bot_type,
-                        'IP': ip,
-                        'Verification': 'FAILED',
-                        'Bot Type': 'Suspicious',
-                        'Requests': ip_request_count
-                    })
+                if ip_requests:
+                    for ip, request_count in ip_requests.items():
+                        if request_count > 0:
+                            bot_data.append({
+                                'Type': 'FAKE',
+                                'Company': bot_type,
+                                'IP': ip,
+                                'Verification': 'FAILED',
+                                'Bot Type': 'Suspicious',
+                                'Requests': request_count
+                            })
 
             # Unknown bots
             if 'unknown' in analysis['bot_analysis']:
                 unknown_info = analysis['bot_analysis']['unknown']
-                for ip in list(unknown_info.get('ips', set()))[:100]:
-                    # محاسبه تعداد درخواست این IP
-                    ip_request_count = sum(1 for log in self.logs if log['ip'] == ip)
+                ip_requests = unknown_info.get('ip_requests', {})
 
-                    bot_data.append({
-                        'Type': 'Unknown',
-                        'Company': 'Unknown',
-                        'IP': ip,
-                        'Verification': 'N/A',
-                        'Bot Type': 'Unknown',
-                        'Requests': ip_request_count
-                    })
+                if ip_requests:
+                    for ip, request_count in ip_requests.items():
+                        if request_count > 0:
+                            bot_data.append({
+                                'Type': 'Unknown',
+                                'Company': 'Unknown',
+                                'IP': ip,
+                                'Verification': 'N/A',
+                                'Bot Type': 'Unknown',
+                                'Requests': request_count
+                            })
+
+            # Debug - نمایش تعداد رکوردهای هر نوع
+            type_counts = {}
+            for item in bot_data:
+                bot_type = item['Type']
+                if bot_type not in type_counts:
+                    type_counts[bot_type] = 0
+                type_counts[bot_type] += 1
+
+            print(f"\n  Bot data summary:")
+            for bot_type, count in type_counts.items():
+                print(f"    {bot_type}: {count} records")
 
             if bot_data:
                 bot_df = pd.DataFrame(bot_data)
                 # مرتب‌سازی بر اساس Type و تعداد Requests
-                bot_df = bot_df.sort_values(['Type', 'Requests'], ascending=[True, False])
+                type_order = {'Legitimate': 0, 'Potentially Legitimate': 1, 'FAKE': 2, 'Unknown': 3}
+                bot_df['Type_Order'] = bot_df['Type'].map(type_order)
+                bot_df = bot_df.sort_values(['Type_Order', 'Requests'], ascending=[True, False])
+                bot_df = bot_df.drop('Type_Order', axis=1)
                 bot_df.to_excel(writer, sheet_name='Bot Analysis', index=False)
+            else:
+                print("  Warning: No bot data to export!")
                         
             # 6. Temporal Analysis Sheet
             temporal_data = []
@@ -2005,7 +2099,7 @@ class AdvancedSecurityAnalyzer:
                         'First Seen': bot_info.get('first_seen', 'N/A'),
                         'Last Seen': bot_info.get('last_seen', 'N/A')
                     })
-            
+
             # آمار بات‌های احتمالی
             if 'potentially_legitimate' in analysis['bot_analysis']:
                 for company, bot_info in analysis['bot_analysis']['potentially_legitimate'].items():
@@ -2019,7 +2113,7 @@ class AdvancedSecurityAnalyzer:
                             'First Seen': bot_info.get('first_seen', 'N/A'),
                             'Last Seen': bot_info.get('last_seen', 'N/A')
                         })
-            
+
             # آمار بات‌های جعلی
             for bot_type, bot_info in analysis['bot_analysis']['fake'].items():
                 if bot_info.get('requests', 0) > 0:
@@ -2568,56 +2662,6 @@ class AdvancedSecurityAnalyzer:
         
         return behavior_analysis
     
-    def export_json_report(self, filename: str = 'security_report.json'):
-        """ذخیره گزارش به فرمت JSON با رفع مشکل encoding"""
-        report = {
-            'metadata': {
-                'generated_at': datetime.now().isoformat(),
-                'site_type': self.site_type,
-                'log_file': self.log_file_path,
-                'analysis_version': '2.0'
-            },
-            'statistics': {
-                'total_requests': len(self.logs),
-                'unique_ips': len(set(log['ip'] for log in self.logs)),
-                'suspicious_ips': len(self.suspicious_ips),
-                'critical_ips': len(self.critical_ips),
-                'fake_bots': len(self.analysis_results['bot_analysis']['fake'])
-            },
-            'threats': {
-                'critical_ips': list(self.critical_ips),
-                'suspicious_ips': list(self.suspicious_ips),
-                'fake_bots': dict(self.analysis_results['bot_analysis']['fake'])
-            },
-            'bot_visit_times': self.analyze_bot_visit_times(),
-            'risk_scores': {
-                ip: {
-                    'score': info['score'],
-                    'level': info['risk_level'],
-                    'reasons': info['reasons']
-                }
-                for ip, info in sorted(
-                    self.analysis_results['risk_scores'].items(),
-                    key=lambda x: x[1]['score'],
-                    reverse=True
-                )[:100]  # Top 100 risky IPs
-            },
-            'attack_patterns': {
-                attack_type: {
-                    'severity': self.advanced_attack_patterns[attack_type]['severity'],
-                    'affected_ips': list(ip_dict.keys())[:20]
-                }
-                for attack_type, ip_dict in self.analysis_results['attack_analysis'].items()
-            },
-        }
-        
-        # ذخیره با encoding UTF-8
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(report, f, indent=2, ensure_ascii=False, default=str)
-        
-        print(f"\n✅ گزارش JSON در {filename} ذخیره شد")
-        return filename
-
     def generate_bot_timeline_report(self) -> Dict:
         """تولید گزارش خط زمانی (Timeline) برای بازدید بات‌ها"""
         from collections import defaultdict
@@ -2787,9 +2831,6 @@ class AdvancedSecurityAnalyzer:
 
         # تولید گزارش Text زیبا
         self._generate_timeline_text(timeline)
-
-        # تولید گزارش JSON
-        self._generate_timeline_json(timeline)
 
         return timeline 
 
@@ -3281,48 +3322,746 @@ class AdvancedSecurityAnalyzer:
                 f.write(f"  Total: {data['total']} | Bots: {', '.join(list(data['bots'])[:5])}\n\n")
 
         print("✅ گزارش Text Timeline در bot_timeline_report.txt ذخیره شد") 
+  
+    def export_bot_calendar_excel_persian(self, filename: str = 'bot_calendar_persian.xlsx'):
+        """تولید گزارش Excel تقویمی زیبا برای بات‌ها با تاریخ شمسی"""
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, NamedStyle
+        from openpyxl.utils import get_column_letter
+        from openpyxl.drawing.image import Image
+        from datetime import datetime, timedelta
+        import pandas as pd
 
-    def _generate_timeline_json(self, timeline: Dict):
-        """تولید گزارش JSON از Timeline"""
-        # تبدیل datetime objects به string برای JSON
-        json_timeline = {
-            'metadata': {
-                'generated_at': datetime.now().isoformat(),
-                'total_events': len(timeline['timeline_events'])
-            },
-            'search_engines': {},
-            'ai_bots': {},
-            'social_media': {},
-            'seo_tools': {},
-            'other_bots': {},
-            'hourly_summary': dict(timeline['hourly_summary']),
-            'daily_summary': dict(timeline['daily_summary'])
+        # بررسی و نصب jdatetime
+        try:
+            import jdatetime
+        except ImportError:
+            print("⚠️ کتابخانه jdatetime یافت نشد. در حال نصب...")
+            import subprocess
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "jdatetime"])
+            import jdatetime
+
+        print("\n📅 تولید گزارش Excel تقویمی بات‌ها با تاریخ شمسی...")
+
+        # تحلیل بات‌ها اگر قبلاً انجام نشده
+        if 'bot_analysis' not in self.analysis_results:
+            self.analysis_results['bot_analysis'] = self.analyze_bots()
+
+        bot_analysis = self.analysis_results['bot_analysis']
+
+        # جمع‌آوری تمام رویدادهای بات
+        all_bot_events = []
+
+        # پردازش بات‌های معتبر
+        for bot_name, bot_data in bot_analysis['legitimate'].items():
+            if bot_data['requests'] > 0:
+                # بازسازی رویدادها از لاگ‌ها
+                for log in self.logs:
+                    if log['ip'] in bot_data['ips']:
+                        # بررسی User-Agent
+                        ua_lower = log['user_agent'].lower()
+                        matches_bot = False
+
+                        if bot_name in self.legitimate_bots:
+                            patterns = self.legitimate_bots[bot_name]['patterns']
+                            matches_bot = any(pattern in ua_lower for pattern in patterns)
+
+                        if bot_name == 'Google':
+                            google_result = self.google_verifier.verify_google_bot(log['ip'], log['user_agent'])
+                            matches_bot = google_result['is_google']
+
+                        if matches_bot:
+                            # تبدیل به تاریخ شمسی
+                            persian_date = jdatetime.datetime.fromgregorian(datetime=log['datetime'])
+
+                            all_bot_events.append({
+                                'DateTime': log['datetime'],
+                                'Persian_Date': persian_date.strftime('%Y/%m/%d'),
+                                'Persian_Time': persian_date.strftime('%H:%M:%S'),
+                                'Persian_Day': persian_date.strftime('%A'),
+                                'Bot_Type': '✅ معتبر',
+                                'Bot_Name': bot_name,
+                                'Bot_Icon': self._get_bot_icon(bot_name),
+                                'IP_Address': log['ip'],
+                                'URL': log['url'][:100],
+                                'Full_URL': log['url'],
+                                'Status_Code': log['status_code'],
+                                'Status_Icon': self._get_status_icon(log['status_code']),
+                                'Status_Text': self._get_status_text(log['status_code']),
+                                'Method': log['method'],
+                                'User_Agent': log['user_agent'][:80],
+                                'Bytes': log['bytes'],
+                                'Referrer': log['referrer'][:50] if log['referrer'] != '-' else ''
+                            })
+
+        # پردازش بات‌های احتمالاً معتبر
+        if 'potentially_legitimate' in bot_analysis:
+            for bot_name, bot_data in bot_analysis['potentially_legitimate'].items():
+                if bot_data['requests'] > 0:
+                    for log in self.logs:
+                        if log['ip'] in bot_data['ips']:
+                            ua_lower = log['user_agent'].lower()
+                            matches_bot = False
+
+                            if bot_name in self.legitimate_bots:
+                                patterns = self.legitimate_bots[bot_name]['patterns']
+                                matches_bot = any(pattern in ua_lower for pattern in patterns)
+
+                            if matches_bot:
+                                persian_date = jdatetime.datetime.fromgregorian(datetime=log['datetime'])
+
+                                all_bot_events.append({
+                                    'DateTime': log['datetime'],
+                                    'Persian_Date': persian_date.strftime('%Y/%m/%d'),
+                                    'Persian_Time': persian_date.strftime('%H:%M:%S'),
+                                    'Persian_Day': persian_date.strftime('%A'),
+                                    'Bot_Type': '⚠️ احتمالی',
+                                    'Bot_Name': bot_name,
+                                    'Bot_Icon': self._get_bot_icon(bot_name),
+                                    'IP_Address': log['ip'],
+                                    'URL': log['url'][:100],
+                                    'Full_URL': log['url'],
+                                    'Status_Code': log['status_code'],
+                                    'Status_Icon': self._get_status_icon(log['status_code']),
+                                    'Status_Text': self._get_status_text(log['status_code']),
+                                    'Method': log['method'],
+                                    'User_Agent': log['user_agent'][:80],
+                                    'Bytes': log['bytes'],
+                                    'Referrer': log['referrer'][:50] if log['referrer'] != '-' else ''
+                                })
+
+        # پردازش بات‌های جعلی
+        for bot_type, bot_data in bot_analysis['fake'].items():
+            if bot_data['requests'] > 0:
+                for log in self.logs:
+                    if log['ip'] in bot_data['ips']:
+                        persian_date = jdatetime.datetime.fromgregorian(datetime=log['datetime'])
+
+                        all_bot_events.append({
+                            'DateTime': log['datetime'],
+                            'Persian_Date': persian_date.strftime('%Y/%m/%d'),
+                            'Persian_Time': persian_date.strftime('%H:%M:%S'),
+                            'Persian_Day': persian_date.strftime('%A'),
+                            'Bot_Type': '❌ جعلی',
+                            'Bot_Name': bot_type,
+                            'Bot_Icon': '🚫',
+                            'IP_Address': log['ip'],
+                            'URL': log['url'][:100],
+                            'Full_URL': log['url'],
+                            'Status_Code': log['status_code'],
+                            'Status_Icon': self._get_status_icon(log['status_code']),
+                            'Status_Text': self._get_status_text(log['status_code']),
+                            'Method': log['method'],
+                            'User_Agent': log['user_agent'][:80],
+                            'Bytes': log['bytes'],
+                            'Referrer': log['referrer'][:50] if log['referrer'] != '-' else ''
+                        })
+
+        # مرتب‌سازی بر اساس زمان
+        all_bot_events.sort(key=lambda x: x['DateTime'], reverse=True)
+
+        # ایجاد Excel Writer
+        with pd.ExcelWriter(filename, engine='openpyxl') as writer:
+
+            # شیت 1: Timeline کامل
+            if all_bot_events:
+                # ایجاد DataFrame
+                df_timeline = pd.DataFrame(all_bot_events)
+
+                # انتخاب و مرتب‌سازی ستون‌ها
+                columns_order = [
+                    'Persian_Date', 'Persian_Day', 'Persian_Time', 
+                    'Bot_Icon', 'Bot_Name', 'Bot_Type',
+                    'Status_Icon', 'Status_Code', 'Status_Text',
+                    'Method', 'URL', 'IP_Address', 
+                    'User_Agent', 'Bytes', 'Referrer'
+                ]
+
+                df_timeline = df_timeline[columns_order]
+
+                # تغییر نام ستون‌ها به فارسی
+                column_names = {
+                    'Persian_Date': 'تاریخ شمسی',
+                    'Persian_Day': 'روز هفته',
+                    'Persian_Time': 'ساعت',
+                    'Bot_Icon': '🤖',
+                    'Bot_Name': 'نام بات',
+                    'Bot_Type': 'نوع بات',
+                    'Status_Icon': '📊',
+                    'Status_Code': 'کد',
+                    'Status_Text': 'وضعیت',
+                    'Method': 'متد',
+                    'URL': 'آدرس صفحه',
+                    'IP_Address': 'آی‌پی',
+                    'User_Agent': 'مرورگر',
+                    'Bytes': 'حجم',
+                    'Referrer': 'ارجاع از'
+                }
+
+                df_timeline.rename(columns=column_names, inplace=True)
+                df_timeline.to_excel(writer, sheet_name='🗓️ خط زمانی', index=False)
+
+                # استایل‌دهی شیت
+                worksheet = writer.sheets['🗓️ خط زمانی']
+                self._style_persian_timeline_sheet(worksheet, df_timeline, all_bot_events)
+
+            # شیت 2: خلاصه روزانه
+            daily_summary = self._create_persian_daily_summary(all_bot_events)
+            if daily_summary:
+                df_daily = pd.DataFrame(daily_summary)
+                df_daily.to_excel(writer, sheet_name='📅 خلاصه روزانه', index=False)
+
+                worksheet = writer.sheets['📅 خلاصه روزانه']
+                self._style_persian_summary_sheet(worksheet, df_daily)
+
+            # شیت 3: آمار بات‌ها
+            bot_stats = self._create_bot_statistics(all_bot_events)
+            if bot_stats:
+                df_stats = pd.DataFrame(bot_stats)
+                df_stats.to_excel(writer, sheet_name='📊 آمار بات‌ها', index=False)
+
+                worksheet = writer.sheets['📊 آمار بات‌ها']
+                self._style_bot_stats_sheet(worksheet, df_stats)
+
+            # شیت 4: نمودار ساعتی
+            hourly_chart_data = self._create_hourly_chart_data(all_bot_events)
+            if hourly_chart_data:
+                df_hourly = pd.DataFrame(hourly_chart_data)
+                df_hourly.to_excel(writer, sheet_name='⏰ نمودار ساعتی', index=False)
+
+                worksheet = writer.sheets['⏰ نمودار ساعتی']
+                self._style_hourly_chart_sheet(worksheet, df_hourly)
+                self._add_hourly_chart(worksheet, len(df_hourly))
+
+            # شیت 5: صفحات پربازدید
+            top_pages = self._analyze_top_pages_by_bots(all_bot_events)
+            if top_pages:
+                df_pages = pd.DataFrame(top_pages)
+                df_pages.to_excel(writer, sheet_name='🔥 صفحات پربازدید', index=False)
+
+                worksheet = writer.sheets['🔥 صفحات پربازدید']
+                self._style_top_pages_sheet(worksheet, df_pages)
+
+        print(f"✅ گزارش Excel تقویمی شمسی در {filename} ذخیره شد")
+        return filename
+
+    def _get_status_text(self, code):
+        """متن توضیحی برای کد وضعیت"""
+        status_texts = {
+            200: "موفق",
+            301: "تغییر مسیر دائمی",
+            302: "تغییر مسیر موقت",
+            304: "بدون تغییر",
+            403: "دسترسی ممنوع",
+            404: "یافت نشد",
+            500: "خطای سرور",
+            502: "باد گیت وی",
+            503: "سرویس غیرفعال",
+            504: "تایم‌آوت گیت وی"
+        }
+        return status_texts.get(code, f"کد {code}")
+    
+    def _get_bot_icon(self, bot_name):
+        """آیکون مناسب برای هر بات"""
+        bot_icons = {
+            'Google': '🔍',
+            'Bing': '🔎',
+            'OpenAI': '🤖',
+            'PerplexityBot': '🧠',
+            'PerplexityUser': '👤',
+            'Meta': '📘',
+            'LinkedIn': '💼',
+            'ByteDance': '🎵',
+            'DuckDuckGo': '🦆',
+            'Ahrefs': '🔗',
+            'SemRush': '📈',
+            'Amazon': '🛒',
+            'Apple': '🍎',
+            'Yandex': '🇷🇺',
+            'Baidu': '🇨🇳',
+            'CommonCrawl': '🕷️',
+            'GoogleCloud': '☁️',
+            'Hacking Tool': '💀',
+            'Empty/Invalid UA': '❓',
+            'Suspicious Bot': '🚨'
+        }
+        return bot_icons.get(bot_name, '🤖')
+
+    def _get_status_icon(self, code):
+        """آیکون برای کد وضعیت"""
+        if code == 200:
+            return '✅'
+        elif code in [301, 302]:
+            return '↪️'
+        elif code == 304:
+            return '📋'
+        elif code == 404:
+            return '❌'
+        elif code == 403:
+            return '🚫'
+        elif code >= 500:
+            return '💥'
+        else:
+            return '⚠️'
+
+    def _style_persian_timeline_sheet(self, worksheet, df, events):
+        """استایل‌دهی شیت Timeline با تم فارسی"""
+        from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
+        from openpyxl.formatting.rule import ColorScaleRule, CellIsRule, FormulaRule
+
+        # تنظیم فونت فارسی
+        persian_font = Font(name='B Nazanin', size=11)
+        header_font = Font(name='B Nazanin', size=13, bold=True, color="FFFFFF")
+
+        # رنگ‌های پس‌زمینه برای header
+        header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+
+        # استایل header
+        for cell in worksheet[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            worksheet.row_dimensions[1].height = 40
+
+        # رنگ‌بندی ردیف‌ها بر اساس نوع بات
+        bot_type_colors = {
+            '✅ معتبر': PatternFill(start_color="E8F5E9", end_color="E8F5E9", fill_type="solid"),
+            '⚠️ احتمالی': PatternFill(start_color="FFF8E1", end_color="FFF8E1", fill_type="solid"),
+            '❌ جعلی': PatternFill(start_color="FFEBEE", end_color="FFEBEE", fill_type="solid")
         }
 
-        # تبدیل events
-        for category in ['search_engines', 'ai_bots', 'social_media', 'seo_tools', 'other_bots']:
-            for bot_name, events in timeline[category].items():
-                if events:
-                    json_timeline[category][bot_name] = {
-                        'total_requests': len(events),
-                        'first_visit': min(e['datetime_obj'] for e in events).isoformat(),
-                        'last_visit': max(e['datetime_obj'] for e in events).isoformat(),
-                        'recent_activity': [
-                            {
-                                'timestamp': e['timestamp'],
-                                'url': e['url'],
-                                'status': e['status_code'],
-                                'ip': e['ip']
-                            }
-                            for e in events[-20:]  # آخرین 20 رویداد
-                        ]
-                    }
+        # Border style
+        thin_border = Border(
+            left=Side(style='thin', color='CCCCCC'),
+            right=Side(style='thin', color='CCCCCC'),
+            top=Side(style='thin', color='CCCCCC'),
+            bottom=Side(style='thin', color='CCCCCC')
+        )
 
-        with open('bot_timeline.json', 'w', encoding='utf-8') as f:
-            json.dump(json_timeline, f, indent=2, ensure_ascii=False)
+        # Apply styles to data rows
+        for idx, row in enumerate(worksheet.iter_rows(min_row=2, max_row=len(df)+1), start=2):
+            # تنظیم فونت فارسی برای همه سلول‌ها
+            for cell in row:
+                cell.font = persian_font
+                cell.border = thin_border
+                cell.alignment = Alignment(vertical="center", wrap_text=False)
 
-        print("✅ گزارش JSON Timeline در bot_timeline.json ذخیره شد")   
-    
+            # رنگ‌بندی بر اساس نوع بات
+            if idx-2 < len(events):
+                bot_type = events[idx-2]['Bot_Type']
+                if bot_type in bot_type_colors:
+                    for cell in row:
+                        cell.fill = bot_type_colors[bot_type]
+
+            # رنگ‌بندی خاص برای ستون وضعیت
+            status_col_idx = 8  # ستون کد وضعیت
+            status_cell = worksheet.cell(row=idx, column=status_col_idx)
+
+            if status_cell.value == 200:
+                status_cell.font = Font(name='B Nazanin', size=11, color="2E7D32", bold=True)
+            elif status_cell.value == 404:
+                status_cell.font = Font(name='B Nazanin', size=11, color="D32F2F", bold=True)
+            elif status_cell.value in [301, 302]:
+                status_cell.font = Font(name='B Nazanin', size=11, color="F57C00", bold=True)
+            elif status_cell.value and status_cell.value >= 500:
+                status_cell.font = Font(name='B Nazanin', size=11, color="B71C1C", bold=True)
+
+            # Alternate row coloring
+            if idx % 2 == 0:
+                for cell in row:
+                    if not cell.fill.patternType:
+                        cell.fill = PatternFill(start_color="F5F5F5", end_color="F5F5F5", fill_type="solid")
+
+        # تنظیم عرض ستون‌ها
+        column_widths = {
+            'A': 12,  # تاریخ شمسی
+            'B': 10,  # روز هفته
+            'C': 10,  # ساعت
+            'D': 5,   # آیکون بات
+            'E': 18,  # نام بات
+            'F': 12,  # نوع بات
+            'G': 5,   # آیکون وضعیت
+            'H': 8,   # کد
+            'I': 16,  # وضعیت
+            'J': 8,   # متد
+            'K': 45,  # آدرس صفحه
+            'L': 15,  # آی‌پی
+            'M': 35,  # مرورگر
+            'N': 10,  # حجم
+            'O': 25   # ارجاع از
+        }
+
+        for col, width in column_widths.items():
+            worksheet.column_dimensions[col].width = width
+
+        # Freeze panes
+        worksheet.freeze_panes = 'A2'
+
+        # Right to left for Persian
+        worksheet.sheet_view.rightToLeft = True
+
+        # Auto filter
+        worksheet.auto_filter.ref = worksheet.dimensions
+
+    def _create_persian_daily_summary(self, events):
+        """ایجاد خلاصه روزانه با تاریخ شمسی"""
+        from collections import defaultdict
+        import jdatetime
+
+        daily_data = defaultdict(lambda: {
+            'legitimate': defaultdict(int),
+            'potentially': defaultdict(int),
+            'fake': defaultdict(int),
+            'total': 0
+        })
+
+        for event in events:
+            persian_date = event['Persian_Date']
+            bot_name = event['Bot_Name']
+            bot_type = event['Bot_Type']
+
+            daily_data[persian_date]['total'] += 1
+
+            if bot_type == '✅ معتبر':
+                daily_data[persian_date]['legitimate'][bot_name] += 1
+            elif bot_type == '⚠️ احتمالی':
+                daily_data[persian_date]['potentially'][bot_name] += 1
+            else:
+                daily_data[persian_date]['fake'][bot_name] += 1
+
+        # تبدیل به لیست برای DataFrame
+        summary = []
+        for date in sorted(daily_data.keys()):
+            row = {
+                'تاریخ': date,
+                'کل بازدید': daily_data[date]['total'],
+                'بات‌های معتبر': sum(daily_data[date]['legitimate'].values()),
+                'بات‌های احتمالی': sum(daily_data[date]['potentially'].values()),
+                'بات‌های جعلی': sum(daily_data[date]['fake'].values())
+            }
+
+            # اضافه کردن تفکیک بات‌های مهم
+            important_bots = ['Google', 'Bing', 'OpenAI', 'PerplexityBot']
+            for bot in important_bots:
+                count = (daily_data[date]['legitimate'].get(bot, 0) + 
+                        daily_data[date]['potentially'].get(bot, 0))
+                if count > 0:
+                    row[f'{self._get_bot_icon(bot)} {bot}'] = count
+
+            summary.append(row)
+
+        return summary
+
+    def _create_bot_statistics(self, events):
+        """ایجاد آمار جامع بات‌ها"""
+        from collections import defaultdict
+
+        bot_stats = defaultdict(lambda: {
+            'total': 0,
+            'success': 0,
+            'errors': 0,
+            'unique_pages': set(),
+            'unique_ips': set(),
+            'first_visit': None,
+            'last_visit': None
+        })
+
+        for event in events:
+            bot_name = event['Bot_Name']
+            stats = bot_stats[bot_name]
+
+            stats['total'] += 1
+            if event['Status_Code'] == 200:
+                stats['success'] += 1
+            elif event['Status_Code'] >= 400:
+                stats['errors'] += 1
+
+            stats['unique_pages'].add(event['Full_URL'])
+            stats['unique_ips'].add(event['IP_Address'])
+
+            if not stats['first_visit'] or event['DateTime'] < stats['first_visit']:
+                stats['first_visit'] = event['DateTime']
+            if not stats['last_visit'] or event['DateTime'] > stats['last_visit']:
+                stats['last_visit'] = event['DateTime']
+
+        # تبدیل به لیست
+        result = []
+        for bot_name, stats in sorted(bot_stats.items(), key=lambda x: x[1]['total'], reverse=True):
+            # تبدیل تاریخ‌ها به شمسی
+            import jdatetime
+            first_persian = jdatetime.datetime.fromgregorian(datetime=stats['first_visit'])
+            last_persian = jdatetime.datetime.fromgregorian(datetime=stats['last_visit'])
+
+            result.append({
+                'آیکون': self._get_bot_icon(bot_name),
+                'نام بات': bot_name,
+                'کل بازدید': stats['total'],
+                'موفق': stats['success'],
+                'خطا': stats['errors'],
+                'نرخ موفقیت': f"{(stats['success']/stats['total']*100):.1f}%",
+                'صفحات یکتا': len(stats['unique_pages']),
+                'IP های یکتا': len(stats['unique_ips']),
+                'اولین بازدید': first_persian.strftime('%Y/%m/%d %H:%M'),
+                'آخرین بازدید': last_persian.strftime('%Y/%m/%d %H:%M')
+            })
+
+        return result
+
+    def _create_hourly_chart_data(self, events):
+        """داده‌های نمودار ساعتی"""
+        from collections import defaultdict
+
+        hourly_data = defaultdict(lambda: defaultdict(int))
+
+        for event in events:
+            hour = event['DateTime'].hour
+            bot_name = event['Bot_Name']
+            hourly_data[hour][bot_name] += 1
+
+        # تبدیل به فرمت مناسب برای نمودار
+        result = []
+        for hour in range(24):
+            row = {'ساعت': f'{hour:02d}:00'}
+
+            # اضافه کردن مهم‌ترین بات‌ها
+            important_bots = ['Google', 'Bing', 'OpenAI', 'PerplexityBot', 'Meta']
+            for bot in important_bots:
+                row[bot] = hourly_data[hour].get(bot, 0)
+
+            # سایر بات‌ها
+            others = sum(count for bot, count in hourly_data[hour].items() 
+                        if bot not in important_bots)
+            if others > 0:
+                row['سایر'] = others
+
+            result.append(row)
+
+        return result
+
+    def _analyze_top_pages_by_bots(self, events):
+        """تحلیل صفحات پربازدید توسط بات‌ها"""
+        from collections import defaultdict
+
+        page_data = defaultdict(lambda: {
+            'total': 0,
+            'bots': defaultdict(int),
+            'success': 0,
+            'errors': 0
+        })
+
+        for event in events:
+            url = event['Full_URL']
+            data = page_data[url]
+
+            data['total'] += 1
+            data['bots'][event['Bot_Name']] += 1
+
+            if event['Status_Code'] == 200:
+                data['success'] += 1
+            elif event['Status_Code'] >= 400:
+                data['errors'] += 1
+
+        # تبدیل به لیست و مرتب‌سازی
+        result = []
+        for url, data in sorted(page_data.items(), key=lambda x: x[1]['total'], reverse=True)[:50]:
+            # لیست بات‌ها
+            bot_list = sorted(data['bots'].items(), key=lambda x: x[1], reverse=True)
+            bot_names = ', '.join([f"{self._get_bot_icon(bot[0])} {bot[0]} ({bot[1]})" 
+                                  for bot in bot_list[:3]])
+
+            result.append({
+                'آدرس صفحه': url[:100],
+                'کل بازدید': data['total'],
+                'تعداد بات': len(data['bots']),
+                'بات‌های بازدیدکننده': bot_names,
+                'نرخ موفقیت': f"{(data['success']/data['total']*100):.0f}%"
+            })
+
+        return result
+
+    def _style_persian_summary_sheet(self, worksheet, df):
+        """استایل شیت خلاصه با تم فارسی"""
+        from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
+        from openpyxl.utils import get_column_letter
+
+        # Header styling
+        header_font = Font(name='B Nazanin', size=13, bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
+
+        for cell in worksheet[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+            worksheet.row_dimensions[1].height = 35
+
+        # Data styling
+        persian_font = Font(name='B Nazanin', size=11)
+
+        for row in worksheet.iter_rows(min_row=2):
+            for cell in row:
+                cell.font = persian_font
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Conditional formatting for numbers
+        for row_idx in range(2, len(df) + 2):
+            total_cell = worksheet.cell(row=row_idx, column=2)
+
+            # رنگ‌بندی بر اساس تعداد کل
+            if total_cell.value and total_cell.value > 100:
+                total_cell.fill = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
+                total_cell.font = Font(name='B Nazanin', size=11, bold=True)
+            elif total_cell.value and total_cell.value > 50:
+                total_cell.fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+
+        # Auto-adjust columns
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+
+            for cell in column:
+                try:
+                    if cell.value:
+                        max_length = max(max_length, len(str(cell.value)))
+                except:
+                    pass
+                
+            adjusted_width = min(max_length + 2, 30)
+            worksheet.column_dimensions[column_letter].width = adjusted_width
+
+        worksheet.sheet_view.rightToLeft = True
+
+    def _style_bot_stats_sheet(self, worksheet, df):
+        """استایل شیت آمار بات‌ها"""
+        from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
+
+        # Header
+        header_font = Font(name='B Nazanin', size=13, bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="1E40AF", end_color="1E40AF", fill_type="solid")
+
+        for cell in worksheet[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Data rows with gradient coloring
+        persian_font = Font(name='B Nazanin', size=11)
+
+        for idx, row in enumerate(worksheet.iter_rows(min_row=2), start=2):
+            # Top 3 bots get special colors
+            if idx == 2:
+                fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")  # Gold
+            elif idx == 3:
+                fill = PatternFill(start_color="C0C0C0", end_color="C0C0C0", fill_type="solid")  # Silver
+            elif idx == 4:
+                fill = PatternFill(start_color="CD7F32", end_color="CD7F32", fill_type="solid")  # Bronze
+            else:
+                fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
+
+            for cell in row:
+                cell.font = persian_font
+                cell.fill = fill
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Borders
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+
+        for row in worksheet.iter_rows():
+            for cell in row:
+                cell.border = thin_border
+
+        # Auto-adjust columns
+        for column in worksheet.columns:
+            column_letter = column[0].column_letter
+            worksheet.column_dimensions[column_letter].width = 15
+
+        worksheet.sheet_view.rightToLeft = True
+
+    def _style_hourly_chart_sheet(self, worksheet, df):
+        """استایل شیت نمودار ساعتی"""
+        from openpyxl.styles import PatternFill, Font, Alignment
+
+        header_font = Font(name='B Nazanin', size=12, bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="059669", end_color="059669", fill_type="solid")
+
+        for cell in worksheet[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Hour column highlighting
+        for row in worksheet.iter_rows(min_row=2, max_col=1):
+            for cell in row:
+                cell.font = Font(name='B Nazanin', size=11, bold=True)
+                cell.fill = PatternFill(start_color="E5E7EB", end_color="E5E7EB", fill_type="solid")
+
+    def _style_top_pages_sheet(self, worksheet, df):
+        """استایل شیت صفحات پربازدید"""
+        from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+
+        header_font = Font(name='B Nazanin', size=13, bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="DC2626", end_color="DC2626", fill_type="solid")
+
+        for cell in worksheet[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            worksheet.row_dimensions[1].height = 40
+
+        # Data rows
+        for idx, row in enumerate(worksheet.iter_rows(min_row=2), start=2):
+            # رنگ‌بندی بر اساس رتبه
+            if idx <= 6:  # Top 5
+                fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+            elif idx <= 11:  # Top 10
+                fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
+            else:
+                fill = None
+
+            for cell in row:
+                cell.font = Font(name='B Nazanin', size=11)
+                if fill:
+                    cell.fill = fill
+                cell.alignment = Alignment(vertical="center", wrap_text=True)
+
+        # Column widths
+        worksheet.column_dimensions['A'].width = 60  # URL
+        worksheet.column_dimensions['B'].width = 12  # Total visits
+        worksheet.column_dimensions['C'].width = 12  # Bot count
+        worksheet.column_dimensions['D'].width = 40  # Bot names
+        worksheet.column_dimensions['E'].width = 12  # Success rate
+
+        worksheet.sheet_view.rightToLeft = True
+
+    def _add_hourly_chart(self, worksheet, data_rows):
+        """اضافه کردن نمودار ساعتی"""
+        from openpyxl.chart import BarChart, Reference, Series
+
+        # Create chart
+        chart = BarChart()
+        chart.type = "col"
+        chart.style = 10
+        chart.title = "توزیع بازدید بات‌ها در ساعات شبانه‌روز"
+        chart.y_axis.title = 'تعداد بازدید'
+        chart.x_axis.title = 'ساعت'
+
+        # Add data
+        data = Reference(worksheet, min_col=2, min_row=1, max_row=data_rows+1, max_col=worksheet.max_column)
+        cats = Reference(worksheet, min_col=1, min_row=2, max_row=data_rows+1)
+
+        chart.add_data(data, titles_from_data=True)
+        chart.set_categories(cats)
+
+        # Style
+        chart.height = 15
+        chart.width = 25
+
+        # Position
+        worksheet.add_chart(chart, f"H2")
+
     def export_all_reports(self):
         """تولید همه گزارش‌ها با رفع مشکل encoding"""
         print("\n📁 تولید همه گزارش‌ها...")
@@ -3330,15 +4069,15 @@ class AdvancedSecurityAnalyzer:
         # 1. Excel Report
         excel_file = self.export_to_excel(self.analysis_results)
         
-        # 2. JSON Report
-        json_file = self.export_json_report()
-        
-        # 3. Firewall Rules
+        # 2. Firewall Rules
         self.export_firewall_rules()
 
         # اضافه کردن گزارش Timeline
         timeline_report = self.generate_bot_timeline_report()
 
+        # اضافه کردن گزارش تقویمی بات‌ها
+        bot_calendar_file = self.export_bot_calendar_excel_persian()
+        
         # 4. Ban List - با encoding UTF-8
         with open('ban_list.txt', 'w', encoding='utf-8') as f:
             f.write(f"# Suspicious IPs - Generated: {datetime.now()}\n")
@@ -3432,12 +4171,10 @@ class AdvancedSecurityAnalyzer:
         
         print("\n✅ همه گزارش‌ها با موفقیت تولید شدند:")
         print(f"  📊 Excel: {excel_file}")
-        print(f"  📄 JSON: {json_file}")
         print("  🔒 Firewall Rules: iptables_rules.sh, htaccess_rules.txt, nginx_rules.conf")
         print("  📝 Ban Lists: ban_list.txt, critical_ips.txt")
         print("  🤖 Bot Report: bot_visits_report.txt")
         print("  📑 Summary: security_summary.md")
-
 
 def main():
     """تابع اصلی برنامه"""
@@ -3517,6 +4254,8 @@ Examples:
             # استفاده از مقدار خط فرمان
             days_limit = args.period
             period_names = {
+                1: 'یک روز اخیر',
+                7: 'یک هفته اخیر',
                 30: 'یک ماه اخیر',
                 60: 'دو ماه اخیر',
                 90: 'سه ماه اخیر',
@@ -3547,8 +4286,6 @@ Examples:
         else:
             if args.excel:
                 analyzer.export_to_excel(analyzer.analysis_results)
-            if args.json:
-                analyzer.export_json_report()
             if args.firewall:
                 analyzer.export_firewall_rules()
             if args.timeline:
