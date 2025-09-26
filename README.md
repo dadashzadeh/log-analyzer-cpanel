@@ -84,6 +84,12 @@ wget https://openai.com/gptbot-ranges.json -O gptbot.json
 # Perplexity bots
 wget https://www.perplexity.ai/perplexitybot.json
 wget https://www.perplexity.ai/perplexity-user.json
+
+# ahrefs bots
+wget https://api.ahrefs.com/v3/public/crawler-ip-ranges
+
+# duckduckgo bots
+wget https://duckduckgo.com/duckduckbot.json
 ```
 
 ## 💻 Installation
