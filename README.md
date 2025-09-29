@@ -1,4 +1,4 @@
-# 🔒 Advanced Security Log Analyzer
+# 🔒 Advanced Security Log analysis
 
 language :
 - [persian](/fa.md)
@@ -23,13 +23,13 @@ A powerful and comprehensive tool for analyzing web server logs, identifying sec
 
 ## ✨ Features
 
-### 🎯 Security Analysis
+### 🎯 Security analysis
 - **Detection of 15+ types of security attacks** including SQL Injection, XSS, LFI/RFI, Command Injection
 - **Risk scoring for IPs** with intelligent algorithms
 - **Identification of suspicious patterns** in user behavior
 - **Request rate analysis** and DDoS attack detection
 
-### 🤖 Bot Analysis
+### 🤖 Bot analysis
 - **Detection of 30+ legitimate bots** (Google, Bing, OpenAI, Perplexity, Meta, etc.)
 - **Fake bot identification** with DNS and IP range verification
 - **Bot visit timeline analysis**
