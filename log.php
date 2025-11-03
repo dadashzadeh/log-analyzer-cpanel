@@ -12,7 +12,7 @@
  * - Interactive Timeline with Full Details
  * - Export to Excel (Both Bot & Non-Bot)
  * - Real-time Search and Filter
- * - PHP 7.0+
+ * - php 7+
  */
 
 error_reporting(E_ALL);
@@ -538,6 +538,27 @@ class BotLogAnalyzer {
         $ua = strtolower($userAgent);
         
         foreach ($this->legitimateBots as $botName => $botInfo) {
+            // GoogleCloud: فقط بر اساس IP شناسایی (بدون UA)
+            if ($botName === 'GoogleCloud') {
+                $ipVerified = $this->ipRangeManager->isIPInRange($ip, $botName);
+                
+                if ($ipVerified) {
+                    return array(
+                        'is_bot' => true,
+                        'bot_name' => $botName,
+                        'bot_type' => 'legitimate',
+                        'icon' => $botInfo['icon'],
+                        'color' => $botInfo['color'],
+                        'verification' => '✅ IP تأیید',
+                        'ip_verified' => true
+                    );
+                }
+                
+                // اگر IP تأیید نشد، به بات بعدی برو
+                continue;
+            }
+            
+            // سایر بات‌ها: چک UA
             $uaMatches = false;
             if (!empty($botInfo['patterns'])) {
                 foreach ($botInfo['patterns'] as $pattern) {
@@ -546,10 +567,6 @@ class BotLogAnalyzer {
                         break;
                     }
                 }
-            }
-            
-            if (empty($botInfo['patterns'])) {
-                $uaMatches = true;
             }
             
             if (!$uaMatches) continue;
