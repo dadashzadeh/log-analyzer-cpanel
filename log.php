@@ -12,6 +12,7 @@
  * - Interactive Timeline with Full Details
  * - Export to Excel (Both Bot & Non-Bot)
  * - Real-time Search and Filter
+ * - PHP 7.0+
  */
 
 error_reporting(E_ALL);
