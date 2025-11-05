@@ -47,7 +47,7 @@ class IPRangeManager {
             'PerplexityUser' => ['perplexity-user.json'],
             'GoogleCloud' => ['cloud.json'],
             'DuckDuckGo' => ['duckduckbot.json'],
-            'Ahrefs' => ['ahrefsbot.json'],
+            'Ahrefs' => ['ahrefs-crawler-ip-ranges.json'],
         ];
         
         foreach ($jsonFiles as $botName => $files) {
