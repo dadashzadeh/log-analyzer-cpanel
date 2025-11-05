@@ -42,7 +42,7 @@ class IPRangeManager {
         $jsonFiles = [
             'Google' => ['googlebot.json', 'special-crawlers.json', 'user-triggered-fetchers.json', 'user-triggered-fetchers-google.json'],
             'Bing' => ['bingbot.json'],
-            'OpenAI' => ['gptbot.json'],
+            'OpenAI' => array('gptbot.json', 'searchbot.json', 'chatgpt-user.json'),
             'PerplexityBot' => ['perplexitybot.json'],
             'PerplexityUser' => ['perplexity-user.json'],
             'GoogleCloud' => ['cloud.json'],
@@ -196,6 +196,11 @@ class BotLogAnalyzer {
         ],
         'OpenAI' => [
             'patterns' => ['gptbot', 'oai-searchbot', 'chatgpt-user', 'chatgpt'],
+            'icon' => '🤖',
+            'color' => '#10A37F'
+        ],
+        'ClaudeAI' => [
+            'patterns' => ['ClaudeBot'],
             'icon' => '🤖',
             'color' => '#10A37F'
         ],
