@@ -183,7 +183,12 @@ class BotLogAnalyzer {
     private $tempDir = 'temp_extracted_logs';
     private $sessionId;
     
+    // 🆕 فیلترهای جدید
+    private $excludedIPs = [];
+    private $excludedBots = ['WordPress', 'WP-Cron', 'Jetpack'];
+    
     private $legitimateBots = [
+        // ... همان آرایه قبلی
         'Google' => [
             'patterns' => ['googlebot', 'adsbot-google', 'mediapartners-google', 'google-inspectiontool', 'googleother', 'google-extended', 'feedfetcher-google'],
             'icon' => '🔍',
@@ -316,6 +321,12 @@ class BotLogAnalyzer {
         $this->sessionId = uniqid('log_', true);
         $this->tempDir = 'temp_extracted_logs_' . substr($this->sessionId, 0, 10);
         
+        // 🆕 پاکسازی خودکار پوشه‌های قدیمی (بیشتر از 1 ساعت)
+        $this->cleanupOldTempDirs();
+        
+        // 🆕 تشخیص خودکار IP های محلی و سرور
+        $this->detectServerIPs();
+        
         if (!is_dir($this->tempDir)) {
             if (!@mkdir($this->tempDir, 0755, true)) {
                 throw new Exception("خطا در ایجاد پوشه موقت: " . $this->tempDir);
@@ -329,6 +340,90 @@ class BotLogAnalyzer {
         } else {
             $this->logFile = $logFile;
         }
+    }
+    
+    // 🆕 پاکسازی خودکار پوشه‌های قدیمی
+    private function cleanupOldTempDirs($maxAge = 3600) {
+        $baseDir = dirname(__FILE__);
+        $pattern = $baseDir . '/temp_extracted_logs_*';
+        $folders = glob($pattern, GLOB_ONLYDIR);
+        
+        if ($folders === false) return;
+        
+        foreach ($folders as $folder) {
+            if (is_dir($folder) && (time() - filemtime($folder)) > $maxAge) {
+                $this->deleteDirectory($folder);
+            }
+        }
+    }
+    
+    // 🆕 حذف بازگشتی پوشه
+    private function deleteDirectory($dir) {
+        if (!is_dir($dir)) return false;
+        
+        $files = @scandir($dir);
+        if ($files === false) return false;
+        
+        $files = array_diff($files, ['.', '..']);
+        
+        foreach ($files as $file) {
+            $path = $dir . '/' . $file;
+            if (is_dir($path)) {
+                $this->deleteDirectory($path);
+            } else {
+                @unlink($path);
+            }
+        }
+        
+        return @rmdir($dir);
+    }
+    
+    // 🆕 تشخیص خودکار IP سرور
+    private function detectServerIPs() {
+        // IP های localhost
+        $this->excludedIPs[] = '127.0.0.1';
+        $this->excludedIPs[] = '::1';
+        
+        // IP سرور فعلی
+        if (isset($_SERVER['SERVER_ADDR'])) {
+            $this->excludedIPs[] = $_SERVER['SERVER_ADDR'];
+        }
+        
+        // شبکه‌های محلی (با نقطه در انتها برای prefix matching)
+        $this->excludedIPs[] = '10.';
+        $this->excludedIPs[] = '172.16.';
+        $this->excludedIPs[] = '192.168.';
+        
+        // حذف تکراری‌ها
+        $this->excludedIPs = array_unique($this->excludedIPs);
+    }
+    
+    // 🆕 بررسی اینکه IP باید فیلتر شود یا نه
+    private function shouldExcludeIP($ip) {
+        foreach ($this->excludedIPs as $excludedIP) {
+            // اگر با نقطه تمام می‌شود، prefix matching
+            if (substr($excludedIP, -1) === '.') {
+                if (strpos($ip, rtrim($excludedIP, '.')) === 0) {
+                    return true;
+                }
+            } else {
+                // مقایسه دقیق
+                if ($ip === $excludedIP) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    // 🆕 بررسی اینکه بات باید فیلتر شود یا نه
+    private function shouldExcludeBot($botName) {
+        foreach ($this->excludedBots as $excluded) {
+            if (stripos($botName, $excluded) !== false) {
+                return true;
+            }
+        }
+        return false;
     }
     
     private function findCPanelLogFile() {
@@ -500,9 +595,19 @@ class BotLogAnalyzer {
                 $parsed = $this->parseLogLine(trim($line));
                 
                 if ($parsed && $parsed['timestamp'] >= $cutoffDate) {
+                    // 🆕 فیلتر IP محلی/سرور
+                    if ($this->shouldExcludeIP($parsed['ip'])) {
+                        continue;
+                    }
+                    
                     $botInfo = $this->identifyBotWithIPRange($parsed['ip'], $parsed['user_agent']);
                     
                     if ($botInfo['is_bot']) {
+                        // 🆕 فیلتر بات وردپرس
+                        if ($this->shouldExcludeBot($botInfo['bot_name'])) {
+                            continue;
+                        }
+                        
                         $parsed['bot_name'] = $botInfo['bot_name'];
                         $parsed['bot_type'] = $botInfo['bot_type'];
                         $parsed['bot_icon'] = $botInfo['icon'];
